@@ -1,0 +1,6 @@
+{% set status_kind = kind if kind is defined else status.kind %}
+{% set status_message = message if message is defined else status.message %}
+
+<div class="status {{ status_kind }}">
+  {{ status_message }}
+</div>

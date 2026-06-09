@@ -1,0 +1,78 @@
+{% extends "base.html" %} {% block title %}Яндекс Музыка - Local Music{%
+endblock %} {% block content %}
+<section class="page-header">
+    <div>
+        <h1>Яндекс Музыка</h1>
+        <p>Авторизуйся токеном, затем загрузи информацию об альбоме по ID.</p>
+        <p>
+            Токен можно получить используя официальную
+            <a href="https://ym.marshal.dev/token/#implicit-oauth"
+                >инструкцию</a
+            >
+            от Яндекса.
+        </p>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Авторизация</h2>
+    <form
+        class="form-row"
+        method="post"
+        action="/web/yandex/auth"
+        hx-post="/web/yandex/auth"
+        hx-target="#auth-status"
+        hx-swap="innerHTML"
+    >
+        <label class="field">
+            <span>Токен</span>
+            <input name="token" type="password" autocomplete="off" required />
+        </label>
+        <button type="submit">Сохранить</button>
+    </form>
+    <div id="auth-status" class="status-slot">
+        {% if status %} {% include "partials/status.html" with context %} {%
+        endif %}
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Альбом</h2>
+    <form
+        class="form-row"
+        method="post"
+        action="/web/yandex/albums"
+        hx-post="/web/yandex/albums"
+        hx-target="#album-result"
+        hx-swap="innerHTML"
+        hx-indicator="#album-loading"
+    >
+        <label class="field">
+            <span>ID альбома</span>
+            <input
+                id="album-id-input"
+                name="album_id"
+                type="text"
+                inputmode="numeric"
+                required
+            />
+        </label>
+        <label class="field compact-field">
+            <span>Качество</span>
+            <select id="album-quality-select" name="quality">
+                <option value="low">Экономное</option>
+                <option value="normal" selected>Обычное</option>
+                <option value="lossless">Lossless</option>
+            </select>
+        </label>
+        <button type="submit">Загрузить</button>
+        <button id="download-album-button" type="button">Скачать альбом</button>
+        <span id="album-loading" class="loading">Загрузка...</span>
+    </form>
+</section>
+
+<section id="album-result" class="result">
+    {% if album %} {% include "partials/album_info.html" with context %} {%
+    endif %}
+</section>
+{% endblock %}

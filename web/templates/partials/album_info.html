@@ -1,0 +1,101 @@
+{% set cover_url = none %}
+{% set cover_artwork_url = none %}
+{% if album.cover_uri %}
+  {% set cover_url = "/web/yandex/cover?uri=" ~ (album.cover_uri | urlencode) %}
+  {% set cover_artwork_url = request.url_for("yandex_cover") ~ "?uri=" ~ (album.cover_uri | urlencode) %}
+{% endif %}
+
+<article class="album-view">
+  <header class="album-header">
+    <div class="cover">
+      {% if cover_url %}
+        <img src="{{ cover_url }}" alt="Обложка альбома {{ album.title }}">
+      {% else %}
+        <div class="cover-placeholder">Нет обложки</div>
+      {% endif %}
+    </div>
+
+    <div class="album-meta">
+      <div class="eyebrow">Альбом</div>
+      <h2>{{ album.title }}</h2>
+      {% if album.version %}
+        <div class="album-version">{{ album.version }}</div>
+      {% endif %}
+      <div class="muted">
+        {{ album.artists | map(attribute="name") | join(", ") }}
+      </div>
+      <div class="meta-line">
+        {% if album.year %}<span>{{ album.year }}</span>{% endif %}
+        {% if album.genre %}<span>{{ album.genre }}</span>{% endif %}
+        {% if album.track_count %}<span>{{ album.track_count }} треков</span>{% endif %}
+      </div>
+      {% if not album.available %}
+        <div class="status warning">Альбом недоступен для скачивания</div>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="track-list" aria-label="Треки альбома">
+    <div class="track-row track-head">
+      <div>#</div>
+      <div></div>
+      <div>Название</div>
+      <div>Исполнители</div>
+      <div>Длительность</div>
+      <div>Статус</div>
+    </div>
+
+    {% for track in album.tracks %}
+      <div class="track-row">
+        <div class="track-number">{{ track.track_number or loop.index }}</div>
+        <div class="track-play-cell">
+          {% if track.available %}
+            <button
+              class="track-play-button"
+              type="button"
+              aria-label="Воспроизвести {{ track.full_title }}"
+              data-audio-src="/api/yandex/tracks/{{ track.id }}/audio"
+              data-track-title="{{ track.full_title }}"
+              data-track-artists="{{ track.artists | map(attribute='name') | join(', ') }}"
+              data-album-title="{{ album.title }}"
+              {% if cover_artwork_url %}data-cover-src="{{ cover_artwork_url }}" data-cover-type="image/jpeg"{% endif %}
+            >
+              <span aria-hidden="true">▶</span>
+            </button>
+          {% endif %}
+        </div>
+        <div class="track-title">
+          {{ track.title }}
+          {% if track.version %}
+            <span class="track-version">{{ track.version }}</span>
+          {% endif %}
+        </div>
+        <div class="track-artists">
+          {{ track.artists | map(attribute="name") | join(", ") }}
+        </div>
+        <div class="track-duration" data-duration-ms="{{ track.duration_ms }}">
+          {% if track.duration_ms %}
+            {{ "%d:%02d" | format((track.duration_ms // 1000) // 60, (track.duration_ms // 1000) % 60) }}
+          {% else %}
+            -
+          {% endif %}
+        </div>
+        <div>
+          {% if track.available %}
+            <span class="badge ok">Доступен</span>
+          {% else %}
+            <span class="badge muted">Недоступен</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="player-bar">
+    <div>
+      <div class="eyebrow">Плеер</div>
+      <div id="player-title" class="player-title">Выбери трек</div>
+    </div>
+    <audio id="album-player" controls preload="none"></audio>
+  </div>
+</article>

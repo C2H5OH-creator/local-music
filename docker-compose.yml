@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+    command:
+      - uv
+      - run
+      - uvicorn
+      - api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+    environment:
+      TOKEN: ${TOKEN:-}
+      YANDEX_MUSIC_TIMEOUT: ${YANDEX_MUSIC_TIMEOUT:-10}
+      YANDEX_MUSIC_MAX_TRY_COUNT: ${YANDEX_MUSIC_MAX_TRY_COUNT:-2}
+      YANDEX_MUSIC_RETRY_DELAY: ${YANDEX_MUSIC_RETRY_DELAY:-1}
+      YANDEX_MUSIC_REQUEST_TIMEOUT: ${YANDEX_MUSIC_REQUEST_TIMEOUT:-30}
+    network_mode: host
+    volumes:
+      - .:/app
+      - ./storage:/app/storage
+    restart: unless-stopped

@@ -1,0 +1,19 @@
+[project]
+name = "local-music"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi",
+    "jinja2",
+    "mutagen>=1.47.0",
+    "pycryptodome",
+    "pytest>=9.0.3",
+    "python-multipart",
+    "rich>=14.2.0",
+    "requests>=2.34.2",
+    "StrEnum",
+    "uvicorn[standard]",
+    "yandex-music>=3.0.0",
+]
