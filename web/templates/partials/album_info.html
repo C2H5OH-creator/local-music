@@ -1,7 +1,7 @@
 {% set cover_url = none %}
 {% set cover_artwork_url = none %}
 {% if album.cover_uri %}
-  {% set cover_url = "/web/yandex/cover?uri=" ~ (album.cover_uri | urlencode) %}
+  {% set cover_url = "/api/yandex/cover?uri=" ~ (album.cover_uri | urlencode) %}
   {% set cover_artwork_url = request.url_for("yandex_cover") ~ "?uri=" ~ (album.cover_uri | urlencode) %}
 {% endif %}
 

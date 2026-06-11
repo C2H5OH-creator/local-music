@@ -1,9 +1,11 @@
 from pathlib import Path
 import sys
-from typing import Any
+import struct
+from typing import Any, Iterator
 from dataclasses import dataclass
 import tempfile
 import zipfile
+import zlib
 
 
 _YANDEX_MUSIC_DOWNLOADER_PATH = (
@@ -22,6 +24,12 @@ class CachedAudio:
 class DownloadedArchive:
     path: Path
     filename: str
+
+
+@dataclass(frozen=True)
+class StreamedArchive:
+    filename: str
+    chunks: Iterator[bytes]
 
 
 def _ensure_yandex_music_downloader_importable() -> None:
@@ -120,21 +128,30 @@ class YandexMusicProvider:
         self,
         album_id: int | str,
         quality: str,
+        cover_quality: str = "400",
+        cover_mode: str = "embedded",
         cache_dir: Path = _DEFAULT_CACHE_DIR,
     ) -> DownloadedArchive:
         _ensure_yandex_music_downloader_importable()
         from ymd import core
 
         quality_value = self._quality_to_core_quality(quality)
+        cover_resolution = self._cover_quality_to_resolution(cover_quality)
+        cover_mode_value = self._cover_mode_to_options(cover_mode)
         album = self.get_album(album_id)
         album_info = self.get_album_info(album_id)
         album_name = self._safe_name(album_info["title"] or f"album-{album_id}")
-        archive_path = cache_dir / "yandex" / "albums" / f"{album.id}-{quality}.zip"
+        archive_path = (
+            cache_dir
+            / "yandex"
+            / "albums"
+            / f"{album.id}-{quality}-cover-{cover_quality}-{cover_mode}.zip"
+        )
 
         if archive_path.is_file():
             return DownloadedArchive(
                 path=archive_path,
-                filename=f"{album_name}-{quality}.zip",
+                filename=f"{album_name}-{quality}-cover-{cover_quality}-{cover_mode}.zip",
             )
 
         archive_path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,8 +176,9 @@ class YandexMusicProvider:
                     )
                     core.download_track(
                         track_info=downloadable,
-                        cover_resolution=-1,
-                        embed_cover=True,
+                        cover_resolution=cover_resolution,
+                        embed_cover=cover_mode_value["embed"],
+                        separate_cover=cover_mode_value["separate"],
                         covers_cache=covers_cache,
                     )
 
@@ -178,8 +196,129 @@ class YandexMusicProvider:
 
         return DownloadedArchive(
             path=archive_path,
-            filename=f"{album_name}-{quality}.zip",
+            filename=f"{album_name}-{quality}-cover-{cover_quality}-{cover_mode}.zip",
         )
+
+    def stream_album_archive(
+        self,
+        album_id: int | str,
+        quality: str,
+        cover_quality: str = "400",
+        cover_mode: str = "embedded",
+    ) -> StreamedArchive:
+        _ensure_yandex_music_downloader_importable()
+
+        quality_value = self._quality_to_core_quality(quality)
+        cover_resolution = self._cover_quality_to_resolution(cover_quality)
+        cover_mode_value = self._cover_mode_to_options(cover_mode)
+        album = self.get_album(album_id)
+        album_info = self.get_album_info(album_id)
+        album_name = self._safe_name(album_info["title"] or f"album-{album_id}")
+
+        return StreamedArchive(
+            filename=f"{album_name}-{quality}-cover-{cover_quality}-{cover_mode}.zip",
+            chunks=self._iter_album_archive_chunks(
+                album,
+                quality_value,
+                cover_resolution,
+                cover_mode_value,
+            ),
+        )
+
+    def _iter_album_archive_chunks(
+        self,
+        album: Any,
+        quality_value: Any,
+        cover_resolution: int,
+        cover_mode_value: dict[str, bool],
+    ) -> Iterator[bytes]:
+        from ymd import core
+
+        central_directory = []
+        archive_offset = 0
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            covers_cache = {}
+            emitted_paths: set[Path] = set()
+
+            for volume in album.volumes or []:
+                for track in volume:
+                    if not track.available:
+                        continue
+
+                    base_path = tmpdir_path / core.prepare_base_path(
+                        core.DEFAULT_PATH_PATTERN,
+                        track,
+                    )
+                    base_path.parent.mkdir(parents=True, exist_ok=True)
+                    downloadable = core.to_downloadable_track(
+                        track,
+                        quality_value,
+                        base_path,
+                    )
+
+                    archive_name = downloadable.path.relative_to(tmpdir_path).as_posix()
+                    header = self._zip_local_file_header(archive_name)
+                    yield header
+                    archive_offset += len(header)
+
+                    core.download_track(
+                        track_info=downloadable,
+                        cover_resolution=cover_resolution,
+                        embed_cover=cover_mode_value["embed"],
+                        separate_cover=cover_mode_value["separate"],
+                        covers_cache=covers_cache,
+                    )
+
+                    for chunk in self._iter_zip_file_data(downloadable.path):
+                        yield chunk
+                        archive_offset += len(chunk)
+
+                    file_info = self._zip_file_info(
+                        archive_name,
+                        downloadable.path,
+                        archive_offset_start=archive_offset
+                        - self._zip_streamed_member_size(downloadable.path, archive_name),
+                    )
+                    central_directory.append(file_info)
+                    emitted_paths.add(downloadable.path)
+
+                    for file_path in sorted(downloadable.path.parent.glob("cover.*")):
+                        if file_path in emitted_paths or not file_path.is_file():
+                            continue
+                        for chunk in self._iter_zip_member(
+                            file_path.relative_to(tmpdir_path).as_posix(),
+                            file_path,
+                            archive_offset,
+                        ):
+                            yield chunk
+                            archive_offset += len(chunk)
+                        central_directory.append(
+                            self._zip_file_info(
+                                file_path.relative_to(tmpdir_path).as_posix(),
+                                file_path,
+                                archive_offset_start=archive_offset
+                                - self._zip_streamed_member_size(
+                                    file_path,
+                                    file_path.relative_to(tmpdir_path).as_posix(),
+                                ),
+                            )
+                        )
+                        emitted_paths.add(file_path)
+
+            central_directory_offset = archive_offset
+            for file_info in central_directory:
+                header = self._zip_central_directory_header(file_info)
+                yield header
+                archive_offset += len(header)
+
+            end_record = self._zip_end_record(
+                file_count=len(central_directory),
+                central_directory_size=archive_offset - central_directory_offset,
+                central_directory_offset=central_directory_offset,
+            )
+            yield end_record
 
     def _track_to_info(self, track: Any) -> dict[str, Any]:
         album = track.albums[0] if track.albums else None
@@ -251,8 +390,191 @@ class YandexMusicProvider:
             raise ValueError(f"Unsupported quality: {quality}") from error
 
     @staticmethod
+    def _cover_quality_to_resolution(cover_quality: str) -> int:
+        if cover_quality == "original":
+            return -1
+
+        try:
+            resolution = int(cover_quality)
+        except ValueError as error:
+            raise ValueError(f"Unsupported cover quality: {cover_quality}") from error
+
+        if resolution < 100:
+            raise ValueError(f"Unsupported cover quality: {cover_quality}")
+        return resolution
+
+    @staticmethod
+    def _cover_mode_to_options(cover_mode: str) -> dict[str, bool]:
+        cover_mode_mapping = {
+            "embedded": {"embed": True, "separate": False},
+            "separate": {"embed": False, "separate": True},
+            "both": {"embed": True, "separate": True},
+        }
+        try:
+            return cover_mode_mapping[cover_mode]
+        except KeyError as error:
+            raise ValueError(f"Unsupported cover mode: {cover_mode}") from error
+
+    @staticmethod
     def _safe_name(value: str) -> str:
         return "".join(
             character if character.isalnum() or character in " ._-" else "_"
             for character in value
         ).strip(" ._") or "album"
+
+    @staticmethod
+    def _dos_time(timestamp: float) -> tuple[int, int]:
+        import datetime as dt
+
+        modified_at = dt.datetime.fromtimestamp(timestamp)
+        dos_time = (
+            (modified_at.hour << 11)
+            | (modified_at.minute << 5)
+            | (modified_at.second // 2)
+        )
+        dos_date = (
+            ((modified_at.year - 1980) << 9)
+            | (modified_at.month << 5)
+            | modified_at.day
+        )
+        return dos_time, dos_date
+
+    @staticmethod
+    def _zip_local_file_header(archive_name: str) -> bytes:
+        encoded_name = archive_name.encode("utf-8")
+        return struct.pack(
+            "<IHHHHHIIIHH",
+            0x04034B50,
+            20,
+            0x0808,
+            8,
+            0,
+            0,
+            0,
+            0,
+            0,
+            len(encoded_name),
+            0,
+        ) + encoded_name
+
+    @staticmethod
+    def _iter_zip_file_data(file_path: Path) -> Iterator[bytes]:
+        crc = 0
+        compressed_size = 0
+        uncompressed_size = 0
+        compressor = zlib.compressobj(
+            level=6,
+            method=zlib.DEFLATED,
+            wbits=-15,
+        )
+
+        with file_path.open("rb") as file:
+            while data := file.read(1024 * 1024):
+                crc = zlib.crc32(data, crc)
+                uncompressed_size += len(data)
+                compressed = compressor.compress(data)
+                if compressed:
+                    compressed_size += len(compressed)
+                    yield compressed
+
+        compressed = compressor.flush()
+        if compressed:
+            compressed_size += len(compressed)
+            yield compressed
+
+        yield struct.pack(
+            "<IIII",
+            0x08074B50,
+            crc & 0xFFFFFFFF,
+            compressed_size,
+            uncompressed_size,
+        )
+
+    def _iter_zip_member(
+        self,
+        archive_name: str,
+        file_path: Path,
+        archive_offset: int,
+    ) -> Iterator[bytes]:
+        header = self._zip_local_file_header(archive_name)
+        yield header
+        yield from self._iter_zip_file_data(file_path)
+
+    @staticmethod
+    def _zip_file_info(
+        archive_name: str,
+        file_path: Path,
+        archive_offset_start: int,
+    ) -> dict[str, Any]:
+        crc = 0
+        compressed_size = 0
+        uncompressed_size = 0
+        compressor = zlib.compressobj(level=6, method=zlib.DEFLATED, wbits=-15)
+
+        with file_path.open("rb") as file:
+            while data := file.read(1024 * 1024):
+                crc = zlib.crc32(data, crc)
+                uncompressed_size += len(data)
+                compressed_size += len(compressor.compress(data))
+        compressed_size += len(compressor.flush())
+        dos_time, dos_date = YandexMusicProvider._dos_time(file_path.stat().st_mtime)
+
+        return {
+            "archive_name": archive_name,
+            "crc": crc & 0xFFFFFFFF,
+            "compressed_size": compressed_size,
+            "uncompressed_size": uncompressed_size,
+            "dos_time": dos_time,
+            "dos_date": dos_date,
+            "offset": archive_offset_start,
+        }
+
+    def _zip_streamed_member_size(self, file_path: Path, archive_name: str) -> int:
+        file_info = self._zip_file_info(archive_name, file_path, 0)
+        return (
+            len(self._zip_local_file_header(archive_name))
+            + file_info["compressed_size"]
+            + 16
+        )
+
+    @staticmethod
+    def _zip_central_directory_header(file_info: dict[str, Any]) -> bytes:
+        encoded_name = file_info["archive_name"].encode("utf-8")
+        return struct.pack(
+            "<IHHHHHHIIIHHHHHII",
+            0x02014B50,
+            20,
+            20,
+            0x0808,
+            8,
+            file_info["dos_time"],
+            file_info["dos_date"],
+            file_info["crc"],
+            file_info["compressed_size"],
+            file_info["uncompressed_size"],
+            len(encoded_name),
+            0,
+            0,
+            0,
+            0,
+            0,
+            file_info["offset"],
+        ) + encoded_name
+
+    @staticmethod
+    def _zip_end_record(
+        file_count: int,
+        central_directory_size: int,
+        central_directory_offset: int,
+    ) -> bytes:
+        return struct.pack(
+            "<IHHHHIIH",
+            0x06054B50,
+            0,
+            0,
+            file_count,
+            file_count,
+            central_directory_size,
+            central_directory_offset,
+            0,
+        )

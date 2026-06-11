@@ -47,7 +47,9 @@ Initial endpoints:
 | `GET` | `/api/yandex/tracks/{track_id}` | Yandex Music track info |
 | `GET` | `/api/yandex/tracks/{track_id}/audio` | Low-traffic cached audio preview |
 | `GET` | `/api/yandex/albums/{album_id}` | Yandex Music album info with tracks |
-| `GET` | `/web/yandex/albums/download?album_id=...&quality=normal` | Download album archive through browser |
+| `GET` | `/api/yandex/albums/fragment?album_id=...` | Yandex Music album HTML fragment |
+| `GET` | `/api/yandex/cover?uri=...&size=400x400` | Proxied Yandex Music cover |
+| `GET` | `/api/yandex/albums/download?album_id=...&albumQuality=normal&coverQuality=400` | Download album archive through browser |
 
 Authorize Yandex Music:
 

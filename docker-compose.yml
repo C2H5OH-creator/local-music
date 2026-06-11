@@ -4,8 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
-    ports:
-      - 4500:4500
     command:
       - uv
       - run
@@ -16,14 +14,21 @@ services:
       - --port
       - "4500"
       - --reload
+    #networks:
+    #  - proxy-network
     environment:
       TOKEN: ${TOKEN:-}
       YANDEX_MUSIC_TIMEOUT: ${YANDEX_MUSIC_TIMEOUT:-10}
       YANDEX_MUSIC_MAX_TRY_COUNT: ${YANDEX_MUSIC_MAX_TRY_COUNT:-2}
       YANDEX_MUSIC_RETRY_DELAY: ${YANDEX_MUSIC_RETRY_DELAY:-1}
       YANDEX_MUSIC_REQUEST_TIMEOUT: ${YANDEX_MUSIC_REQUEST_TIMEOUT:-30}
-    #network_mode: host
+      YANDEX_MUSIC_ALBUM_REQUEST_TIMEOUT: ${YANDEX_MUSIC_ALBUM_REQUEST_TIMEOUT:-120}
+    network_mode: host
     volumes:
       - .:/app
       - ./storage:/app/storage
     restart: unless-stopped
+
+# networks:
+#   proxy-network:
+#     external: true

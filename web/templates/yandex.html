@@ -19,8 +19,8 @@ endblock %} {% block content %}
     <form
         class="form-row"
         method="post"
-        action="/web/yandex/auth"
-        hx-post="/web/yandex/auth"
+        action="/api/yandex/auth/form"
+        hx-post="/api/yandex/auth/form"
         hx-target="#auth-status"
         hx-swap="innerHTML"
     >
@@ -40,9 +40,9 @@ endblock %} {% block content %}
     <h2>Альбом</h2>
     <form
         class="form-row"
-        method="post"
-        action="/web/yandex/albums"
-        hx-post="/web/yandex/albums"
+        method="get"
+        action="/api/yandex/albums/fragment"
+        hx-get="/api/yandex/albums/fragment"
         hx-target="#album-result"
         hx-swap="innerHTML"
         hx-indicator="#album-loading"
@@ -57,18 +57,38 @@ endblock %} {% block content %}
                 required
             />
         </label>
+        <button type="submit">Загрузить</button>
+        <span id="album-loading" class="loading">Загрузка...</span>
+    </form>
+
+    <div class="form-row download-row">
         <label class="field compact-field">
-            <span>Качество</span>
-            <select id="album-quality-select" name="quality">
+            <span>Качество треков</span>
+            <select id="album-quality-select">
                 <option value="low">Экономное</option>
                 <option value="normal" selected>Обычное</option>
                 <option value="lossless">Lossless</option>
             </select>
         </label>
-        <button type="submit">Загрузить</button>
+        <label class="field compact-field">
+            <span>Качество обложки</span>
+            <select id="cover-quality-select">
+                <option value="200">200x200</option>
+                <option value="400" selected>400x400</option>
+                <option value="1000">1000x1000</option>
+                <option value="original">Оригинальное</option>
+            </select>
+        </label>
+        <label class="field compact-field">
+            <span>Обложка</span>
+            <select id="cover-mode-select">
+                <option value="embedded" selected>Вшитая обложка</option>
+                <option value="separate">Отдельная обложка</option>
+                <option value="both">Отдельная и вшитая</option>
+            </select>
+        </label>
         <button id="download-album-button" type="button">Скачать альбом</button>
-        <span id="album-loading" class="loading">Загрузка...</span>
-    </form>
+    </div>
 </section>
 
 <section id="album-result" class="result">

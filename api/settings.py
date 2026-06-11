@@ -24,6 +24,7 @@ class Settings:
     yandex_music_max_try_count: int
     yandex_music_retry_delay: int
     yandex_music_request_timeout: int
+    yandex_music_album_request_timeout: int
 
 
 def get_settings() -> Settings:
@@ -35,4 +36,7 @@ def get_settings() -> Settings:
         yandex_music_max_try_count=int(os.getenv("YANDEX_MUSIC_MAX_TRY_COUNT", "2")),
         yandex_music_retry_delay=int(os.getenv("YANDEX_MUSIC_RETRY_DELAY", "1")),
         yandex_music_request_timeout=int(os.getenv("YANDEX_MUSIC_REQUEST_TIMEOUT", "30")),
+        yandex_music_album_request_timeout=int(
+            os.getenv("YANDEX_MUSIC_ALBUM_REQUEST_TIMEOUT", "120")
+        ),
     )

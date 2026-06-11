@@ -90,7 +90,9 @@ document.addEventListener("click", (event) => {
   const downloadButton = event.target.closest("#download-album-button");
   if (downloadButton) {
     const albumInput = document.getElementById("album-id-input");
-    const qualitySelect = document.getElementById("album-quality-select");
+    const albumQualitySelect = document.getElementById("album-quality-select");
+    const coverQualitySelect = document.getElementById("cover-quality-select");
+    const coverModeSelect = document.getElementById("cover-mode-select");
     const albumId = albumInput?.value?.trim();
     if (!albumId) {
       albumInput?.focus();
@@ -99,9 +101,11 @@ document.addEventListener("click", (event) => {
 
     const params = new URLSearchParams({
       album_id: albumId,
-      quality: qualitySelect?.value || "normal",
+      albumQuality: albumQualitySelect?.value || "normal",
+      coverQuality: coverQualitySelect?.value || "400",
+      coverMode: coverModeSelect?.value || "embedded",
     });
-    window.location.href = `/web/yandex/albums/download?${params.toString()}`;
+    window.location.href = `/api/yandex/albums/download/stream?${params.toString()}`;
     return;
   }
 
@@ -113,8 +117,12 @@ document.addEventListener("click", (event) => {
   playTrackButton(button);
 });
 
-document.addEventListener("ended", (event) => {
-  if (event.target.id === "album-player") {
-    playNextTrack();
-  }
-}, true);
+document.addEventListener(
+  "ended",
+  (event) => {
+    if (event.target.id === "album-player") {
+      playNextTrack();
+    }
+  },
+  true,
+);
