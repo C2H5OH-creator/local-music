@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
+    ports:
+      - 4500:4500
     command:
       - uv
       - run
@@ -20,7 +22,7 @@ services:
       YANDEX_MUSIC_MAX_TRY_COUNT: ${YANDEX_MUSIC_MAX_TRY_COUNT:-2}
       YANDEX_MUSIC_RETRY_DELAY: ${YANDEX_MUSIC_RETRY_DELAY:-1}
       YANDEX_MUSIC_REQUEST_TIMEOUT: ${YANDEX_MUSIC_REQUEST_TIMEOUT:-30}
-    network_mode: host
+    #network_mode: host
     volumes:
       - .:/app
       - ./storage:/app/storage
