@@ -32,6 +32,9 @@ body {
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   width: 240px;
   border-right: 1px solid var(--border);
   background: #101820;
@@ -47,7 +50,7 @@ body {
 
 .source-nav {
   display: grid;
-  gap: 4px;
+  gap: 8px;
 }
 
 .source-link {
@@ -60,6 +63,73 @@ body {
 
 .source-link:hover,
 .source-link.active {
+  background: #263241;
+  color: #ffffff;
+}
+
+.sidebar-divider {
+  height: 1px;
+  margin: 16px 10px;
+  background: rgba(216, 222, 231, 0.18);
+}
+
+.account-menu {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: auto;
+  border: 0;
+  background: transparent;
+  font-weight: 400;
+  text-align: left;
+}
+
+.profile-menu-toggle:hover,
+.profile-menu-toggle.active {
+  background: #263241;
+}
+
+.profile-menu-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.profile-menu-toggle[aria-expanded="true"] .profile-menu-arrow {
+  transform: translateY(3px) rotate(225deg);
+}
+
+.account-submenu {
+  display: grid;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.child-link {
+  margin-left: 18px;
+  padding: 8px 10px 8px 14px;
+  font-size: 13px;
+}
+
+.sidebar-button {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background: transparent;
+  color: #d8dee7;
+  font-weight: 400;
+  text-align: left;
+}
+
+.sidebar-button:hover {
   background: #263241;
   color: #ffffff;
 }
@@ -173,8 +243,69 @@ button:hover {
   background: var(--accent-strong);
 }
 
+.account-menu .profile-menu-toggle {
+  width: 100%;
+  height: auto;
+  padding: 10px;
+  background: transparent;
+  color: #d8dee7;
+  font-weight: 400;
+}
+
+.account-menu .profile-menu-toggle:hover,
+.account-menu .profile-menu-toggle.active {
+  background: #263241;
+  color: #ffffff;
+}
+
+.account-menu .sidebar-button {
+  height: auto;
+  padding: 8px 10px 8px 14px;
+  background: transparent;
+  color: #d8dee7;
+  font-weight: 400;
+}
+
+.account-menu .sidebar-button:hover {
+  background: #263241;
+  color: #ffffff;
+}
+
 .status-slot {
   margin-top: 12px;
+}
+
+.auth-panel {
+  max-width: 520px;
+}
+
+.auth-panel .status {
+  margin-top: 14px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.auth-form button {
+  justify-self: start;
+  min-width: 150px;
+  margin-top: 18px;
+}
+
+.settings-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.settings-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .status {
@@ -402,6 +533,7 @@ button:hover {
 @media (max-width: 760px) {
   .sidebar {
     position: static;
+    gap: 16px;
     width: auto;
     border-right: 0;
   }

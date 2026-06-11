@@ -1,9 +1,11 @@
 from connectors.yandex_music import YandexMusicProvider
 from api.settings import get_settings
+import hashlib
 
 
 _yandex_music_provider: YandexMusicProvider | None = None
 _yandex_music_token: str | None = None
+_yandex_music_providers_by_token: dict[str, YandexMusicProvider] = {}
 
 
 def create_yandex_music_provider(token: str) -> YandexMusicProvider:
@@ -16,8 +18,11 @@ def create_yandex_music_provider(token: str) -> YandexMusicProvider:
     )
 
 
-def get_yandex_music_provider() -> YandexMusicProvider:
+def get_yandex_music_provider(token: str | None = None) -> YandexMusicProvider:
     global _yandex_music_provider
+
+    if token:
+        return get_yandex_music_provider_by_token(token)
 
     if _yandex_music_provider is not None:
         return _yandex_music_provider
@@ -29,6 +34,19 @@ def get_yandex_music_provider() -> YandexMusicProvider:
 
     _yandex_music_provider = create_yandex_music_provider(token)
     return _yandex_music_provider
+
+
+def get_yandex_music_provider_by_token(token: str) -> YandexMusicProvider:
+    token = token.strip()
+    if not token:
+        raise ValueError("Yandex Music token is empty")
+
+    token_key = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    provider = _yandex_music_providers_by_token.get(token_key)
+    if provider is None:
+        provider = create_yandex_music_provider(token)
+        _yandex_music_providers_by_token[token_key] = provider
+    return provider
 
 
 def set_yandex_music_provider(token: str) -> None:

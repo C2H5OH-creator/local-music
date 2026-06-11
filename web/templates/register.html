@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация - Local Music{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Регистрация</h1>
+        <p>Создай локальный аккаунт для сохранения настроек и подключений.</p>
+    </div>
+</section>
+
+<section class="panel auth-panel">
+    <h2>Новый аккаунт</h2>
+    {% if error_message %}
+        <div class="status error">{{ error_message }}</div>
+    {% endif %}
+    <form class="auth-form" method="post" action="/register">
+        <label class="field">
+            <span>Логин</span>
+            <input name="username" type="text" autocomplete="username" value="{{ username or '' }}" required />
+        </label>
+        <label class="field">
+            <span>Пароль</span>
+            <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+</section>
+{% endblock %}

@@ -9,6 +9,7 @@ dependencies = [
     "jinja2",
     "mutagen>=1.47.0",
     "pycryptodome",
+    "psycopg[binary]>=3.3.2",
     "pytest>=9.0.3",
     "python-multipart",
     "rich>=14.2.0",

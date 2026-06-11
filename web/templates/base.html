@@ -6,19 +6,79 @@
         <title>{% block title %}Local Music{% endblock %}</title>
         <link rel="stylesheet" href="/static/styles.css" />
         <script src="https://unpkg.com/htmx.org@2.0.7"></script>
-        <script src="/static/app.js?v={{ static_version | default('dev') }}" defer></script>
+        <script
+            src="/static/app.js?v={{ static_version | default('dev') }}"
+            defer
+        ></script>
     </head>
     <body>
         <aside class="sidebar">
-            <div class="brand">Local Music</div>
-            <nav class="source-nav" aria-label="Источники">
-                <a
-                    class="source-link {% if active_source == 'yandex' %}active{% endif %}"
-                    href="/yandex"
+            <div>
+                <div class="brand">Local Music</div>
+                <nav class="source-nav" aria-label="Источники">
+                    <a
+                        class="source-link {% if active_source == 'yandex' %}active{% endif %}"
+                        href="/yandex"
+                    >
+                        Яндекс Музыка
+                    </a>
+                </nav>
+            </div>
+
+            <div class="sidebar-divider" aria-hidden="true"></div>
+
+            <div class="account-menu">
+                <button
+                    id="profile-menu-toggle"
+                    class="source-link profile-menu-toggle {% if active_account_page %}active{% endif %}"
+                    type="button"
+                    aria-expanded="{% if profile_menu_open or active_account_page %}true{% else %}false{% endif %}"
+                    aria-controls="profile-submenu"
                 >
-                    Яндекс Музыка
-                </a>
-            </nav>
+                    <span>{% if current_user %}{{ current_user.username }}{% else %}Профиль{% endif %}</span>
+                    <span class="profile-menu-arrow" aria-hidden="true"></span>
+                </button>
+                <div
+                    id="profile-submenu"
+                    class="account-submenu"
+                    {%
+                    if
+                    not
+                    (profile_menu_open
+                    or
+                    active_account_page)
+                    %}hidden{%
+                    endif
+                    %}
+                >
+                    {% if current_user %}
+                        <a
+                            class="source-link child-link {% if active_account_page == 'settings' %}active{% endif %}"
+                            href="/settings"
+                    >
+                        Настройки
+                    </a>
+                    <form method="post" action="/logout">
+                        <button class="sidebar-button child-link" type="submit">
+                            Выйти
+                        </button>
+                    </form>
+                    {% else %}
+                    <a
+                        class="source-link child-link {% if active_account_page == 'login' %}active{% endif %}"
+                        href="/login"
+                    >
+                        Войти
+                    </a>
+                    <a
+                        class="source-link child-link {% if active_account_page == 'register' %}active{% endif %}"
+                        href="/register"
+                    >
+                        Зарегистрироваться
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </aside>
 
         <main class="content">{% block content %}{% endblock %}</main>

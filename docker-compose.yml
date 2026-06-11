@@ -18,6 +18,13 @@ services:
     #  - proxy-network
     environment:
       TOKEN: ${TOKEN:-}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-local-music-dev-secret-change-me}
+      DATABASE_URL: ${DATABASE_URL:-}
+      DATABASE_HOST: ${DATABASE_HOST:-127.0.0.1}
+      DATABASE_PORT: ${DATABASE_PORT:-4501}
+      DATABASE_NAME: ${POSTGRES_DB:-local_music}
+      DATABASE_USER: ${POSTGRES_USER:-local_music}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-local_music}
       YANDEX_MUSIC_TIMEOUT: ${YANDEX_MUSIC_TIMEOUT:-10}
       YANDEX_MUSIC_MAX_TRY_COUNT: ${YANDEX_MUSIC_MAX_TRY_COUNT:-2}
       YANDEX_MUSIC_RETRY_DELAY: ${YANDEX_MUSIC_RETRY_DELAY:-1}
@@ -28,6 +35,29 @@ services:
       - .:/app
       - ./storage:/app/storage
     restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-local_music}
+      POSTGRES_USER: ${POSTGRES_USER:-local_music}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_music}
+    ports:
+      - "4501:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
 
 # networks:
 #   proxy-network:

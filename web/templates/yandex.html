@@ -3,7 +3,7 @@ endblock %} {% block content %}
 <section class="page-header">
     <div>
         <h1>Яндекс Музыка</h1>
-        <p>Авторизуйся токеном, затем загрузи информацию об альбоме по ID.</p>
+        <p>Сохрани токен Яндекс Музыки один раз, затем загружай альбомы по ID.</p>
         <p>
             Токен можно получить используя официальную
             <a href="https://ym.marshal.dev/token/#implicit-oauth"
@@ -15,7 +15,7 @@ endblock %} {% block content %}
 </section>
 
 <section class="panel">
-    <h2>Авторизация</h2>
+    <h2>Токен Яндекс Музыки</h2>
     <form
         class="form-row"
         method="post"
@@ -25,10 +25,10 @@ endblock %} {% block content %}
         hx-swap="innerHTML"
     >
         <label class="field">
-            <span>Токен</span>
+            <span>{% if status and status.kind == "success" %}Новый токен{% else %}Токен{% endif %}</span>
             <input name="token" type="password" autocomplete="off" required />
         </label>
-        <button type="submit">Сохранить</button>
+        <button type="submit">{% if status and status.kind == "success" %}Заменить{% else %}Сохранить{% endif %}</button>
     </form>
     <div id="auth-status" class="status-slot">
         {% if status %} {% include "partials/status.html" with context %} {%

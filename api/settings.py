@@ -19,6 +19,13 @@ def load_env_file() -> None:
 
 @dataclass(frozen=True)
 class Settings:
+    app_secret_key: str
+    database_url: str | None
+    database_host: str
+    database_port: int
+    database_name: str
+    database_user: str
+    database_password: str
     yandex_music_token: str | None
     yandex_music_timeout: int
     yandex_music_max_try_count: int
@@ -31,6 +38,13 @@ def get_settings() -> Settings:
     load_env_file()
 
     return Settings(
+        app_secret_key=os.getenv("APP_SECRET_KEY", "local-music-dev-secret-change-me"),
+        database_url=os.getenv("DATABASE_URL") or None,
+        database_host=os.getenv("DATABASE_HOST", "127.0.0.1"),
+        database_port=int(os.getenv("DATABASE_PORT", "4501")),
+        database_name=os.getenv("DATABASE_NAME", "local_music"),
+        database_user=os.getenv("DATABASE_USER", "local_music"),
+        database_password=os.getenv("DATABASE_PASSWORD", "local_music"),
         yandex_music_token=os.getenv("TOKEN"),
         yandex_music_timeout=int(os.getenv("YANDEX_MUSIC_TIMEOUT", "10")),
         yandex_music_max_try_count=int(os.getenv("YANDEX_MUSIC_MAX_TRY_COUNT", "2")),

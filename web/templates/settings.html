@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки - Local Music{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Настройки</h1>
+        <p>Аккаунт и подключения к музыкальным сервисам.</p>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Аккаунт</h2>
+    <div class="settings-list">
+        <div>
+            <span class="settings-label">Логин</span>
+            <strong>{{ current_user.username }}</strong>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>Подключения</h2>
+    <p>Здесь будут храниться токены и логины для Яндекс Музыки, Qobuz и Navidrome.</p>
+</section>
+{% endblock %}

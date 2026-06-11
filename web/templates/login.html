@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - Local Music{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1>Вход</h1>
+        <p>Войди в аккаунт, чтобы хранить настройки и доступы к сервисам.</p>
+    </div>
+</section>
+
+<section class="panel auth-panel">
+    <h2>Аккаунт</h2>
+    {% if error_message %}
+        <div class="status error">{{ error_message }}</div>
+    {% endif %}
+    <form class="auth-form" method="post" action="/login">
+        <label class="field">
+            <span>Логин</span>
+            <input name="username" type="text" autocomplete="username" value="{{ username or '' }}" required />
+        </label>
+        <label class="field">
+            <span>Пароль</span>
+            <input name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit">Войти</button>
+    </form>
+</section>
+{% endblock %}

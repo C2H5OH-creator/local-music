@@ -18,6 +18,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, SecretStr
 
+from api.auth import CurrentUser, get_current_user
+from api.credentials import (
+    get_service_credentials,
+    save_service_credentials,
+)
 from api.settings import get_settings
 from api.threading import run_blocking_yandex_call
 from api.yandex_service import get_yandex_music_provider, set_yandex_music_token
@@ -54,6 +59,36 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 def ok_response(data: dict[str, Any]) -> ApiResponse:
     return ApiResponse(ok=True, data=data)
+
+
+def get_yandex_music_provider_for_user(
+    current_user: CurrentUser | None,
+):
+    if current_user is not None:
+        credentials = get_service_credentials(current_user.id, "yandex_music")
+        if credentials and credentials.get("token"):
+            return get_yandex_music_provider(credentials["token"])
+
+    return get_yandex_music_provider()
+
+
+def save_yandex_music_token_for_user(
+    current_user: CurrentUser | None,
+    token: str,
+) -> None:
+    token = token.strip()
+    if not token:
+        raise ValueError("Yandex Music token is empty")
+
+    if current_user is not None:
+        save_service_credentials(
+            user_id=current_user.id,
+            service="yandex_music",
+            auth_type="token",
+            data={"token": token},
+        )
+    else:
+        set_yandex_music_token(token)
 
 
 def raise_provider_error(error: Exception) -> None:
@@ -123,10 +158,15 @@ async def health() -> dict[str, str]:
     response_model=ApiResponse,
     tags=["yandex-music"],
 )
-async def authorize_yandex_music(payload: YandexAuthRequest) -> ApiResponse:
+async def authorize_yandex_music(
+    request: Request,
+    payload: YandexAuthRequest,
+) -> ApiResponse:
     try:
+        current_user = await run_blocking_yandex_call(get_current_user, request)
         await run_blocking_yandex_call(
-            set_yandex_music_token,
+            save_yandex_music_token_for_user,
+            current_user,
             payload.token.get_secret_value(),
         )
         return ok_response({"authorized": True})
@@ -144,13 +184,23 @@ async def authorize_yandex_music_form(
     token: str = Form(...),
 ) -> HTMLResponse:
     try:
-        await run_blocking_yandex_call(set_yandex_music_token, token)
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        await run_blocking_yandex_call(
+            save_yandex_music_token_for_user,
+            current_user,
+            token,
+        )
+        message = (
+            "Токен сохранен в аккаунте. Можно загружать информацию об альбомах."
+            if current_user is not None
+            else "Токен сохранен до перезапуска сервера. Войди в аккаунт, чтобы сохранить его постоянно."
+        )
         return templates.TemplateResponse(
             request,
             "partials/status.html",
             {
                 "kind": "success",
-                "message": "Токен сохранен. Можно загружать информацию об альбомах.",
+                "message": message,
             },
         )
     except Exception as error:
@@ -169,9 +219,13 @@ async def authorize_yandex_music_form(
     response_model=ApiResponse,
     tags=["yandex-music"],
 )
-async def get_yandex_track_info(track_id: str) -> ApiResponse:
+async def get_yandex_track_info(request: Request, track_id: str) -> ApiResponse:
     try:
-        provider = await run_blocking_yandex_call(get_yandex_music_provider)
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        provider = await run_blocking_yandex_call(
+            get_yandex_music_provider_for_user,
+            current_user,
+        )
         data = await run_blocking_yandex_call(provider.get_track_info, track_id)
         return ok_response(data)
     except Exception as error:
@@ -190,7 +244,11 @@ async def get_yandex_album_fragment(
     try:
         settings = get_settings()
         started_at = time.monotonic()
-        provider = await run_blocking_yandex_call(get_yandex_music_provider)
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        provider = await run_blocking_yandex_call(
+            get_yandex_music_provider_for_user,
+            current_user,
+        )
         album_info = await run_blocking_yandex_call(
             provider.get_album_info,
             album_id,
@@ -233,6 +291,7 @@ async def get_yandex_cover(uri: str, size: str = "400x400") -> Response:
     tags=["yandex-music"],
 )
 async def download_yandex_album(
+    request: Request,
     album_id: str,
     albumQuality: str = "normal",
     coverQuality: str = "400",
@@ -242,7 +301,11 @@ async def download_yandex_album(
     try:
         settings = get_settings()
         track_quality = quality or albumQuality
-        provider = await run_blocking_yandex_call(get_yandex_music_provider)
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        provider = await run_blocking_yandex_call(
+            get_yandex_music_provider_for_user,
+            current_user,
+        )
         archive = await run_blocking_yandex_call(
             provider.download_album_archive,
             album_id,
@@ -265,6 +328,7 @@ async def download_yandex_album(
     tags=["yandex-music"],
 )
 async def stream_yandex_album_download(
+    request: Request,
     album_id: str,
     albumQuality: str = "normal",
     coverQuality: str = "400",
@@ -273,7 +337,11 @@ async def stream_yandex_album_download(
 ) -> StreamingResponse:
     try:
         track_quality = quality or albumQuality
-        provider = await run_blocking_yandex_call(get_yandex_music_provider)
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        provider = await run_blocking_yandex_call(
+            get_yandex_music_provider_for_user,
+            current_user,
+        )
         archive = await run_blocking_yandex_call(
             provider.stream_album_archive,
             album_id,
@@ -322,10 +390,14 @@ async def redirect_legacy_yandex_album_download(
     response_model=ApiResponse,
     tags=["yandex-music"],
 )
-async def get_yandex_album_info(album_id: str) -> ApiResponse:
+async def get_yandex_album_info(request: Request, album_id: str) -> ApiResponse:
     try:
         settings = get_settings()
-        provider = await run_blocking_yandex_call(get_yandex_music_provider)
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        provider = await run_blocking_yandex_call(
+            get_yandex_music_provider_for_user,
+            current_user,
+        )
         data = await run_blocking_yandex_call(
             provider.get_album_info,
             album_id,
@@ -340,9 +412,13 @@ async def get_yandex_album_info(album_id: str) -> ApiResponse:
     "/api/yandex/tracks/{track_id}/audio",
     tags=["yandex-music"],
 )
-async def get_yandex_track_audio(track_id: str) -> FileResponse:
+async def get_yandex_track_audio(request: Request, track_id: str) -> FileResponse:
     try:
-        provider = await run_blocking_yandex_call(get_yandex_music_provider)
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        provider = await run_blocking_yandex_call(
+            get_yandex_music_provider_for_user,
+            current_user,
+        )
         cached_audio = await run_blocking_yandex_call(
             provider.get_track_audio_preview,
             track_id,

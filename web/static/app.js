@@ -87,6 +87,21 @@ function playPreviousTrack() {
 }
 
 document.addEventListener("click", (event) => {
+  const profileToggle = event.target.closest("#profile-menu-toggle");
+  if (profileToggle) {
+    const submenu = document.getElementById(
+      profileToggle.getAttribute("aria-controls"),
+    );
+    if (!submenu) {
+      return;
+    }
+
+    const isOpen = profileToggle.getAttribute("aria-expanded") === "true";
+    profileToggle.setAttribute("aria-expanded", String(!isOpen));
+    submenu.hidden = isOpen;
+    return;
+  }
+
   const downloadButton = event.target.closest("#download-album-button");
   if (downloadButton) {
     const albumInput = document.getElementById("album-id-input");
