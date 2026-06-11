@@ -1,28 +1,26 @@
 <!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Local Music{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
-    <script src="https://unpkg.com/htmx.org@2.0.7"></script>
-    <script src="{{ url_for('static', path='app.js') }}" defer></script>
-  </head>
-  <body>
-    <aside class="sidebar">
-      <div class="brand">Local Music</div>
-      <nav class="source-nav" aria-label="Источники">
-        <a
-          class="source-link {% if active_source == 'yandex' %}active{% endif %}"
-          href="/yandex"
-        >
-          Яндекс Музыка
-        </a>
-      </nav>
-    </aside>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{% block title %}Local Music{% endblock %}</title>
+        <link rel="stylesheet" href="/static/styles.css" />
+        <script src="https://unpkg.com/htmx.org@2.0.7"></script>
+        <script src="/static/app.js" defer></script>
+    </head>
+    <body>
+        <aside class="sidebar">
+            <div class="brand">Local Music</div>
+            <nav class="source-nav" aria-label="Источники">
+                <a
+                    class="source-link {% if active_source == 'yandex' %}active{% endif %}"
+                    href="/yandex"
+                >
+                    Яндекс Музыка
+                </a>
+            </nav>
+        </aside>
 
-    <main class="content">
-      {% block content %}{% endblock %}
-    </main>
-  </body>
+        <main class="content">{% block content %}{% endblock %}</main>
+    </body>
 </html>
