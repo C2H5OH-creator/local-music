@@ -86,6 +86,33 @@ function playPreviousTrack() {
   playAdjacentTrack(-1);
 }
 
+function setDownloadStatus(kind, message) {
+  const status = document.getElementById("download-status");
+  if (!status) {
+    return;
+  }
+
+  const statusMessage = document.createElement("div");
+  statusMessage.className = `status ${kind}`;
+  statusMessage.textContent = message;
+  status.replaceChildren(statusMessage);
+}
+
+function updateDownloadOptionFields() {
+  const downloadPathSelect = document.getElementById("download-path-select");
+  const coverModeSelect = document.getElementById("cover-mode-select");
+  const serverPathField = document.querySelector(".server-path-field");
+  const coverQualityField = document.querySelector(".cover-quality-field");
+
+  if (serverPathField) {
+    serverPathField.hidden = downloadPathSelect?.value !== "on-server";
+  }
+
+  if (coverQualityField) {
+    coverQualityField.hidden = coverModeSelect?.value === "no-cover";
+  }
+}
+
 document.addEventListener("click", (event) => {
   const profileToggle = event.target.closest("#profile-menu-toggle");
   if (profileToggle) {
@@ -108,6 +135,10 @@ document.addEventListener("click", (event) => {
     const albumQualitySelect = document.getElementById("album-quality-select");
     const coverQualitySelect = document.getElementById("cover-quality-select");
     const coverModeSelect = document.getElementById("cover-mode-select");
+    const downloadPathSelect = document.getElementById("download-path-select");
+    const serverMusicPathInput = document.getElementById(
+      "server-music-path-input",
+    );
     const albumId = albumInput?.value?.trim();
     if (!albumId) {
       albumInput?.focus();
@@ -120,6 +151,46 @@ document.addEventListener("click", (event) => {
       coverQuality: coverQualitySelect?.value || "400",
       coverMode: coverModeSelect?.value || "embedded",
     });
+
+    if (downloadPathSelect?.value === "on-server") {
+      downloadButton.disabled = true;
+      setDownloadStatus("warning", "Альбом скачивается на сервер...");
+
+      const formData = new FormData();
+      formData.set("album_id", albumId);
+      formData.set("albumQuality", albumQualitySelect?.value || "normal");
+      formData.set("coverQuality", coverQualitySelect?.value || "400");
+      formData.set("coverMode", coverModeSelect?.value || "embedded");
+      formData.set("musicPath", serverMusicPathInput?.value?.trim() || "");
+
+      fetch("/api/yandex/albums/download/server", {
+        method: "POST",
+        body: formData,
+      })
+        .then(async (response) => {
+          const payload = await response.json();
+          if (!response.ok || !payload.ok) {
+            const message =
+              payload?.detail?.message ||
+              payload?.error?.message ||
+              "Не удалось скачать альбом на сервер";
+            throw new Error(message);
+          }
+
+          setDownloadStatus(
+            "success",
+            `Альбом скачан на сервер: ${payload.data.path}`,
+          );
+        })
+        .catch((error) => {
+          setDownloadStatus("error", error.message);
+        })
+        .finally(() => {
+          downloadButton.disabled = false;
+        });
+      return;
+    }
+
     window.location.href = `/api/yandex/albums/download/stream?${params.toString()}`;
     return;
   }
@@ -131,6 +202,17 @@ document.addEventListener("click", (event) => {
 
   playTrackButton(button);
 });
+
+document.addEventListener("change", (event) => {
+  if (
+    event.target.closest("#download-path-select") ||
+    event.target.closest("#cover-mode-select")
+  ) {
+    updateDownloadOptionFields();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", updateDownloadOptionFields);
 
 document.addEventListener(
   "ended",

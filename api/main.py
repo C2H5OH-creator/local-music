@@ -91,6 +91,19 @@ def save_yandex_music_token_for_user(
         set_yandex_music_token(token)
 
 
+def resolve_server_music_path(base_path: Path, music_path: str) -> Path:
+    relative_path = Path(music_path.strip() or ".")
+    if relative_path.is_absolute() or any(part == ".." for part in relative_path.parts):
+        raise ValueError("Music path must be relative")
+
+    resolved_base_path = base_path.resolve()
+    target_path = (resolved_base_path / relative_path).resolve()
+    if target_path != resolved_base_path and resolved_base_path not in target_path.parents:
+        raise ValueError("Music path is outside server music directory")
+
+    return target_path
+
+
 def raise_provider_error(error: Exception) -> None:
     if isinstance(error, ValueError):
         status_code = 404
@@ -358,6 +371,49 @@ async def stream_yandex_album_download(
                     f"attachment; filename*=UTF-8''{quoted_filename}"
                 ),
             },
+        )
+    except Exception as error:
+        raise_provider_error(error)
+
+
+@app.post(
+    "/api/yandex/albums/download/server",
+    response_model=ApiResponse,
+    tags=["yandex-music"],
+)
+async def download_yandex_album_to_server(
+    request: Request,
+    album_id: str = Form(...),
+    albumQuality: str = Form("normal"),
+    coverQuality: str = Form("400"),
+    coverMode: str = Form("embedded"),
+    musicPath: str = Form(""),
+) -> ApiResponse:
+    try:
+        settings = get_settings()
+        target_path = resolve_server_music_path(
+            settings.server_music_base_path,
+            musicPath,
+        )
+        current_user = await run_blocking_yandex_call(get_current_user, request)
+        provider = await run_blocking_yandex_call(
+            get_yandex_music_provider_for_user,
+            current_user,
+        )
+        downloaded = await run_blocking_yandex_call(
+            provider.download_album_to_directory,
+            album_id,
+            albumQuality,
+            target_path,
+            coverQuality,
+            coverMode,
+            timeout=settings.yandex_music_album_request_timeout,
+        )
+        return ok_response(
+            {
+                "path": str(downloaded.path),
+                "track_count": downloaded.track_count,
+            }
         )
     except Exception as error:
         raise_provider_error(error)

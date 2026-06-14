@@ -25,6 +25,7 @@ services:
       DATABASE_NAME: ${POSTGRES_DB:-local_music}
       DATABASE_USER: ${POSTGRES_USER:-local_music}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-local_music}
+      SERVER_MUSIC_BASE_PATH: ${SERVER_MUSIC_BASE_PATH:-/music}
       YANDEX_MUSIC_TIMEOUT: ${YANDEX_MUSIC_TIMEOUT:-10}
       YANDEX_MUSIC_MAX_TRY_COUNT: ${YANDEX_MUSIC_MAX_TRY_COUNT:-2}
       YANDEX_MUSIC_RETRY_DELAY: ${YANDEX_MUSIC_RETRY_DELAY:-1}
@@ -34,6 +35,7 @@ services:
     volumes:
       - .:/app
       - ./storage:/app/storage
+      - ${SERVER_MUSIC_HOST_PATH:-./music}:/music
     restart: unless-stopped
 
   postgres:

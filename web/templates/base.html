@@ -5,13 +5,18 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{% block title %}Local Music{% endblock %}</title>
         <link rel="stylesheet" href="/static/styles.css" />
+        <link
+            rel="icon"
+            href="/static/icons/app/local-music_favicon.png"
+            type="image/png"
+        />
         <script src="https://unpkg.com/htmx.org@2.0.7"></script>
         <script
             src="/static/app.js?v={{ static_version | default('dev') }}"
             defer
         ></script>
     </head>
-    <body>
+    <body class="{% block body_class %}{% endblock %}">
         <aside class="sidebar">
             <div>
                 <div class="brand">Local Music</div>
@@ -20,7 +25,26 @@
                         class="source-link {% if active_source == 'yandex' %}active{% endif %}"
                         href="/yandex"
                     >
-                        Яндекс Музыка
+                        <img
+                            class="source-icon"
+                            src="/static/icons/sources/yandex_favicon.svg"
+                            alt=""
+                            aria-hidden="true"
+                        />
+                        <span>Яндекс Музыка</span>
+                    </a>
+
+                    <a
+                        class="source-link {% if active_source == 'navidrome' %}active{% endif %}"
+                        href="/navidrome"
+                    >
+                        <img
+                            class="source-icon"
+                            src="/static/icons/sources/navidrome_favicon.png"
+                            alt=""
+                            aria-hidden="true"
+                        />
+                        <span>Navidrome</span>
                     </a>
                 </nav>
             </div>
@@ -32,29 +56,31 @@
                     id="profile-menu-toggle"
                     class="source-link profile-menu-toggle {% if active_account_page %}active{% endif %}"
                     type="button"
-                    aria-expanded="{% if profile_menu_open or active_account_page %}true{% else %}false{% endif %}"
+                    aria-expanded="{% if active_account_page %}true{% else %}false{% endif %}"
                     aria-controls="profile-submenu"
                 >
-                    <span>{% if current_user %}{{ current_user.username }}{% else %}Профиль{% endif %}</span>
+                    <span
+                        >{% if current_user %}{{ current_user.username }}{% else
+                        %}Профиль{% endif %}</span
+                    >
                     <span class="profile-menu-arrow" aria-hidden="true"></span>
                 </button>
+
                 <div
                     id="profile-submenu"
                     class="account-submenu"
                     {%
                     if
                     not
-                    (profile_menu_open
-                    or
-                    active_account_page)
+                    active_account_page
                     %}hidden{%
                     endif
                     %}
                 >
                     {% if current_user %}
-                        <a
-                            class="source-link child-link {% if active_account_page == 'settings' %}active{% endif %}"
-                            href="/settings"
+                    <a
+                        class="source-link child-link {% if active_account_page == 'settings' %}active{% endif %}"
+                        href="/settings"
                     >
                         Настройки
                     </a>

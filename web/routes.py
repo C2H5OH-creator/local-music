@@ -5,10 +5,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from api.auth import (
-    AuthError,
-    DuplicateUserError,
     SESSION_COOKIE_NAME,
     SESSION_TTL_SECONDS,
+    AuthError,
+    DuplicateUserError,
     authenticate_user,
     create_session_token,
     create_user,
@@ -16,10 +16,9 @@ from api.auth import (
 )
 from api.credentials import has_service_credentials
 
-
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
 router = APIRouter()
-STATIC_VERSION = "20260611-11"
+STATIC_VERSION = "20260611-16"
 
 
 def template_context(request: Request, **context: object) -> dict[str, object]:
@@ -75,6 +74,18 @@ async def yandex_page(request: Request) -> HTMLResponse:
             active_source="yandex",
             current_user=current_user,
             status=status,
+        ),
+    )
+
+
+@router.get("/navidrome", response_class=HTMLResponse, include_in_schema=False)
+async def qobuz_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "navidrome/navidrome.html",
+        template_context(
+            request,
+            active_source="navidrome",
         ),
     )
 

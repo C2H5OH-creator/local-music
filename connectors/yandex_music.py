@@ -32,6 +32,12 @@ class StreamedArchive:
     chunks: Iterator[bytes]
 
 
+@dataclass(frozen=True)
+class DownloadedAlbumDirectory:
+    path: Path
+    track_count: int
+
+
 def _ensure_yandex_music_downloader_importable() -> None:
     path = str(_YANDEX_MUSIC_DOWNLOADER_PATH)
     if path not in sys.path:
@@ -198,6 +204,52 @@ class YandexMusicProvider:
             path=archive_path,
             filename=f"{album_name}-{quality}-cover-{cover_quality}-{cover_mode}.zip",
         )
+
+    def download_album_to_directory(
+        self,
+        album_id: int | str,
+        quality: str,
+        target_root: Path,
+        cover_quality: str = "400",
+        cover_mode: str = "embedded",
+    ) -> DownloadedAlbumDirectory:
+        _ensure_yandex_music_downloader_importable()
+        from ymd import core
+
+        quality_value = self._quality_to_core_quality(quality)
+        cover_resolution = self._cover_quality_to_resolution(cover_quality)
+        cover_mode_value = self._cover_mode_to_options(cover_mode)
+        album = self.get_album(album_id)
+
+        target_root.mkdir(parents=True, exist_ok=True)
+        covers_cache = {}
+        track_count = 0
+
+        for volume in album.volumes or []:
+            for track in volume:
+                if not track.available:
+                    continue
+
+                base_path = target_root / core.prepare_base_path(
+                    core.DEFAULT_PATH_PATTERN,
+                    track,
+                )
+                base_path.parent.mkdir(parents=True, exist_ok=True)
+                downloadable = core.to_downloadable_track(
+                    track,
+                    quality_value,
+                    base_path,
+                )
+                core.download_track(
+                    track_info=downloadable,
+                    cover_resolution=cover_resolution,
+                    embed_cover=cover_mode_value["embed"],
+                    separate_cover=cover_mode_value["separate"],
+                    covers_cache=covers_cache,
+                )
+                track_count += 1
+
+        return DownloadedAlbumDirectory(path=target_root, track_count=track_count)
 
     def stream_album_archive(
         self,
@@ -406,6 +458,7 @@ class YandexMusicProvider:
     @staticmethod
     def _cover_mode_to_options(cover_mode: str) -> dict[str, bool]:
         cover_mode_mapping = {
+            "no-cover": {"embed": False, "separate": False},
             "embedded": {"embed": True, "separate": False},
             "separate": {"embed": False, "separate": True},
             "both": {"embed": True, "separate": True},

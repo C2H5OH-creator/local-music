@@ -32,6 +32,7 @@ class Settings:
     yandex_music_retry_delay: int
     yandex_music_request_timeout: int
     yandex_music_album_request_timeout: int
+    server_music_base_path: Path
 
 
 def get_settings() -> Settings:
@@ -53,4 +54,5 @@ def get_settings() -> Settings:
         yandex_music_album_request_timeout=int(
             os.getenv("YANDEX_MUSIC_ALBUM_REQUEST_TIMEOUT", "120")
         ),
+        server_music_base_path=Path(os.getenv("SERVER_MUSIC_BASE_PATH", "/music")),
     )

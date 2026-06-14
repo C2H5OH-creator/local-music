@@ -3,7 +3,9 @@ endblock %} {% block content %}
 <section class="page-header">
     <div>
         <h1>Яндекс Музыка</h1>
-        <p>Сохрани токен Яндекс Музыки один раз, затем загружай альбомы по ID.</p>
+        <p>
+            Сохрани токен Яндекс Музыки один раз, затем загружай альбомы по ID.
+        </p>
         <p>
             Токен можно получить используя официальную
             <a href="https://ym.marshal.dev/token/#implicit-oauth"
@@ -25,10 +27,16 @@ endblock %} {% block content %}
         hx-swap="innerHTML"
     >
         <label class="field">
-            <span>{% if status and status.kind == "success" %}Новый токен{% else %}Токен{% endif %}</span>
+            <span
+                >{% if status and status.kind == "success" %}Новый токен{% else
+                %}Токен{% endif %}</span
+            >
             <input name="token" type="password" autocomplete="off" required />
         </label>
-        <button type="submit">{% if status and status.kind == "success" %}Заменить{% else %}Сохранить{% endif %}</button>
+        <button type="submit">
+            {% if status and status.kind == "success" %}Заменить{% else
+            %}Сохранить{% endif %}
+        </button>
     </form>
     <div id="auth-status" class="status-slot">
         {% if status %} {% include "partials/status.html" with context %} {%
@@ -57,7 +65,7 @@ endblock %} {% block content %}
                 required
             />
         </label>
-        <button type="submit">Загрузить</button>
+        <button type="submit">Открыть</button>
         <span id="album-loading" class="loading">Загрузка...</span>
     </form>
 
@@ -71,6 +79,15 @@ endblock %} {% block content %}
             </select>
         </label>
         <label class="field compact-field">
+            <span>Обложка</span>
+            <select id="cover-mode-select">
+                <option value="no-cover">Без обложки</option>
+                <option value="embedded" selected>Вшитая обложка</option>
+                <option value="separate">Отдельная обложка</option>
+                <option value="both">Отдельная и вшитая</option>
+            </select>
+        </label>
+        <label class="field compact-field cover-quality-field">
             <span>Качество обложки</span>
             <select id="cover-quality-select">
                 <option value="200">200x200</option>
@@ -79,16 +96,26 @@ endblock %} {% block content %}
                 <option value="original">Оригинальное</option>
             </select>
         </label>
+
         <label class="field compact-field">
-            <span>Обложка</span>
-            <select id="cover-mode-select">
-                <option value="embedded" selected>Вшитая обложка</option>
-                <option value="separate">Отдельная обложка</option>
-                <option value="both">Отдельная и вшитая</option>
+            <span>Куда скачать?</span>
+            <select id="download-path-select">
+                <option value="on-device" selected>На устройство</option>
+                <option value="on-server">На сервер</option>
             </select>
+        </label>
+        <label class="field compact-field server-path-field" hidden>
+            <span>Путь на сервере</span>
+            <input
+                id="server-music-path-input"
+                type="text"
+                placeholder="например: library"
+                autocomplete="off"
+            />
         </label>
         <button id="download-album-button" type="button">Скачать альбом</button>
     </div>
+    <div id="download-status" class="status-slot"></div>
 </section>
 
 <section id="album-result" class="result">
