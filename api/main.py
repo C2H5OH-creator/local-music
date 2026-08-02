@@ -25,6 +25,7 @@ from api.credentials import (
 )
 from api.settings import get_settings
 from api.threading import run_blocking_yandex_call
+from connectors.yandex_links import extract_album_id
 from api.yandex_service import get_yandex_music_provider, set_yandex_music_token
 
 
@@ -255,6 +256,7 @@ async def get_yandex_album_fragment(
     album_id: str,
 ) -> HTMLResponse:
     try:
+        album_id = extract_album_id(album_id)
         settings = get_settings()
         started_at = time.monotonic()
         current_user = await run_blocking_yandex_call(get_current_user, request)
@@ -312,6 +314,7 @@ async def download_yandex_album(
     quality: str | None = None,
 ) -> FileResponse:
     try:
+        album_id = extract_album_id(album_id)
         settings = get_settings()
         track_quality = quality or albumQuality
         current_user = await run_blocking_yandex_call(get_current_user, request)
@@ -349,6 +352,7 @@ async def stream_yandex_album_download(
     quality: str | None = None,
 ) -> StreamingResponse:
     try:
+        album_id = extract_album_id(album_id)
         track_quality = quality or albumQuality
         current_user = await run_blocking_yandex_call(get_current_user, request)
         provider = await run_blocking_yandex_call(
@@ -390,6 +394,7 @@ async def download_yandex_album_to_server(
     musicPath: str = Form(""),
 ) -> ApiResponse:
     try:
+        album_id = extract_album_id(album_id)
         settings = get_settings()
         target_path = resolve_server_music_path(
             settings.server_music_base_path,

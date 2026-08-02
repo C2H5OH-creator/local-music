@@ -4,7 +4,8 @@ endblock %} {% block content %}
     <div>
         <h1>Яндекс Музыка</h1>
         <p>
-            Сохрани токен Яндекс Музыки один раз, затем загружай альбомы по ID.
+            Сохрани токен Яндекс Музыки один раз, затем загружай альбомы по
+            ссылке или ID.
         </p>
         <p>
             Токен можно получить используя официальную
@@ -56,12 +57,12 @@ endblock %} {% block content %}
         hx-indicator="#album-loading"
     >
         <label class="field">
-            <span>ID альбома</span>
+            <span>Ссылка или ID альбома</span>
             <input
                 id="album-id-input"
                 name="album_id"
                 type="text"
-                inputmode="numeric"
+                placeholder="https://music.yandex.ru/album/42791372"
                 required
             />
         </label>
