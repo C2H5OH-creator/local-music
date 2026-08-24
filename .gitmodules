@@ -1,0 +1,3 @@
+[submodule "external_tools/yandex-music-downloader"]
+	path = external_tools/yandex-music-downloader
+	url = https://github.com/llistochek/yandex-music-downloader.git

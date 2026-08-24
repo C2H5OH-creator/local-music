@@ -58,8 +58,10 @@ class YandexMusicProvider:
             from ymd import core
         except ImportError as error:
             raise RuntimeError(
-                "Cannot import yandex-music-downloader. Make sure its dependencies "
-                "are installed: yandex-music, mutagen, StrEnum, pycryptodome."
+                "Cannot import yandex-music-downloader. Make sure the "
+                "external_tools/yandex-music-downloader submodule is initialized "
+                "and its dependencies are installed: yandex-music, mutagen, "
+                f"StrEnum, pycryptodome. Original error: {error}"
             ) from error
 
         self.client = core.init_client(
@@ -113,20 +115,25 @@ class YandexMusicProvider:
         cache_dir: Path = _DEFAULT_CACHE_DIR,
     ) -> CachedAudio:
         _ensure_yandex_music_downloader_importable()
-        from ymd import api
+        from ymd import core
 
         track = self.get_track(track_id)
-        download_info = api.get_download_info(track, api.ApiTrackQuality.LOW)
-        suffix = self._container_to_suffix(download_info.file_format.container)
-        media_type = self._container_to_media_type(download_info.file_format.container)
-        cache_path = cache_dir / "yandex" / "tracks" / f"{track.id}{suffix}"
+        base_path = cache_dir / "yandex" / "tracks" / str(track.id)
+        downloadable = core.to_downloadable_track(
+            track,
+            core.CoreTrackQuality.LOW,
+            base_path,
+        )
+        cache_path = downloadable.path
+        media_type = self._path_to_media_type(cache_path)
 
         if not cache_path.is_file():
             cache_path.parent.mkdir(parents=True, exist_ok=True)
-            track_data = api.download_track(self.client, download_info)
-            temporary_path = cache_path.with_suffix(cache_path.suffix + ".tmp")
-            temporary_path.write_bytes(track_data)
-            temporary_path.replace(cache_path)
+            core.download_track(
+                track_info=downloadable,
+                embed_cover=False,
+                separate_cover=False,
+            )
 
         return CachedAudio(path=cache_path, media_type=media_type)
 
@@ -409,6 +416,8 @@ class YandexMusicProvider:
 
     @staticmethod
     def _container_to_suffix(container: Any) -> str:
+        if container.name == "AAC":
+            return ".aac"
         if container.name == "MP3":
             return ".mp3"
         if container.name == "MP4":
@@ -419,6 +428,8 @@ class YandexMusicProvider:
 
     @staticmethod
     def _container_to_media_type(container: Any) -> str:
+        if container.name == "AAC":
+            return "audio/aac"
         if container.name == "MP3":
             return "audio/mpeg"
         if container.name == "MP4":
@@ -426,6 +437,16 @@ class YandexMusicProvider:
         if container.name == "FLAC":
             return "audio/flac"
         raise RuntimeError(f"Unknown audio container: {container}")
+
+    @staticmethod
+    def _path_to_media_type(path: Path) -> str:
+        if path.suffix == ".mp3":
+            return "audio/mpeg"
+        if path.suffix == ".m4a":
+            return "audio/mp4"
+        if path.suffix == ".flac":
+            return "audio/flac"
+        raise RuntimeError(f"Unknown audio file suffix: {path.suffix}")
 
     @staticmethod
     def _quality_to_core_quality(quality: str) -> Any:
