@@ -38,6 +38,26 @@ def format_artists(artists: list[dict]) -> str:
 
 
 class YandexMusicProviderTest(unittest.TestCase):
+    def test_download_track_supports_older_downloader_api(self) -> None:
+        from connectors.yandex_music import YandexMusicProvider
+
+        received = {}
+
+        class OldDownloader:
+            @staticmethod
+            def download_track(*, track_info, embed_cover):
+                received["track_info"] = track_info
+                received["embed_cover"] = embed_cover
+
+        YandexMusicProvider._download_track(
+            OldDownloader,
+            track_info="track",
+            embed_cover=False,
+            separate_cover=False,
+        )
+
+        self.assertEqual(received, {"track_info": "track", "embed_cover": False})
+
     def test_remuxes_flac_mp4_to_native_flac(self) -> None:
         if shutil.which("ffmpeg") is None:
             self.skipTest("ffmpeg is not installed")

@@ -1,4 +1,5 @@
 from pathlib import Path
+import inspect
 import sys
 import struct
 from typing import Any, Iterator
@@ -71,6 +72,20 @@ class YandexMusicProvider:
             retry_delay=retry_delay,
         )
 
+    @staticmethod
+    def _download_track(core: Any, **kwargs: Any) -> None:
+        """Call both the current and the pinned downloader APIs.
+
+        Older revisions of yandex-music-downloader do not accept
+        ``separate_cover``.  The option is cosmetic, so omitting it preserves
+        downloads instead of failing when an older submodule is checked out.
+        """
+        if "separate_cover" not in inspect.signature(
+            core.download_track
+        ).parameters:
+            kwargs.pop("separate_cover", None)
+        core.download_track(**kwargs)
+
     def get_track(self, track_id: int | str) -> Any:
         tracks = self.client.tracks(track_id)
         if not tracks:
@@ -129,7 +144,8 @@ class YandexMusicProvider:
 
         if not cache_path.is_file():
             cache_path.parent.mkdir(parents=True, exist_ok=True)
-            core.download_track(
+            self._download_track(
+                core,
                 track_info=downloadable,
                 embed_cover=False,
                 separate_cover=False,
@@ -187,7 +203,8 @@ class YandexMusicProvider:
                         quality_value,
                         base_path,
                     )
-                    core.download_track(
+                    self._download_track(
+                        core,
                         track_info=downloadable,
                         cover_resolution=cover_resolution,
                         embed_cover=cover_mode_value["embed"],
@@ -247,7 +264,8 @@ class YandexMusicProvider:
                     quality_value,
                     base_path,
                 )
-                core.download_track(
+                self._download_track(
+                    core,
                     track_info=downloadable,
                     cover_resolution=cover_resolution,
                     embed_cover=cover_mode_value["embed"],
@@ -322,7 +340,8 @@ class YandexMusicProvider:
                     yield header
                     archive_offset += len(header)
 
-                    core.download_track(
+                    self._download_track(
+                        core,
                         track_info=downloadable,
                         cover_resolution=cover_resolution,
                         embed_cover=cover_mode_value["embed"],
